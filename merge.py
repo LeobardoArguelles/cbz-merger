@@ -133,6 +133,7 @@ def zipImages():
                 a size smaller than <M> (provided by the user).
     """
     topDir = os.getcwd()
+    print(topDir)
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     if not path.isdir(VOLS_DIR):
         os.mkdir(VOLS_DIR)
@@ -145,13 +146,27 @@ def zipImages():
         # Get stes of pre-sorted volumes keys, and all the images extracted
         volumes = getVolumes(IMGS_DIR)
 
+        # Zip images by volume
         for volume, imgs in volumes.items():
             LOGGER.info('Archiving chapters of volume: ' + volume)
             currentArchive = path.join(VOLS_DIR, volume + ARCHIVE_EXT)
+            """
+            Working directory must be inside the images directory.
+            Otherwise, the zipfile will have nested folders, e.g:
+            /share
+            |
+             --- The World God Only Knows
+                |
+                |--- Vol 00-1.jpg
+                |--- Vol 00-2.jpg
+                |--- ...
+                |--- Vol 99-99.jpg
+            """
+            os.chdir(IMGS_DIR)
             with ZipFile(currentArchive, 'w') as zf:
                 for img in imgs:
                     LOGGER.debug('Adding: ' + img)
-                    zf.write(path.join(IMGS_DIR, img))
+                    zf.write(img)
     else:
         ARCHIVE = path.join(os.getcwd(), merge.params.archive)
         with ZipFile(ARCHIVE + ARCHIVE_EXT, 'w') as zf:
