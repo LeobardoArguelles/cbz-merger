@@ -37,8 +37,8 @@ def merge(app):
         print('Use an absolute path, starting from "/"')
         raise e
 
-    # extractCbz(merge.params.path)
-    # renameImages()
+    extractCbz(merge.params.path)
+    renameImages()
     zipImages()
     print('\nAll done!')
 
@@ -63,11 +63,12 @@ def extractCbz(dir):
 
         name, ext = path.splitext(file)
         LOGGER.info('-'*50)
-        LOGGER.info('Creating directory for: ' + name)
         extract_path = path.join(EXTRACT_DIR, name)
         if not path.isdir(extract_path):
-            LOGGER.info(extract_path + 'already exists. Using that directory for extracted files.')
+            LOGGER.info('Creating directory for: ' + name)
             os.mkdir(extract_path)
+        else:
+            LOGGER.info(extract_path + 'already exists. Using that directory for extracted files.')
 
         LOGGER.info('Extracting: ' + name + '...')
         with ZipFile(file, 'r') as zipObj:
@@ -90,12 +91,9 @@ def renameImages():
     topDir = os.getcwd()
 
     if merge.params.volumize:
-        print('volumize detected')
         for dir in natsorted(os.listdir(EXTRACT_DIR)):
-            print('current dir is: ' + dir)
             counter = 0
             currentDir = path.join(topDir, EXTRACT_DIR, dir)
-            print('current dir path is: ' + currentDir)
             # Move images to ZIP_DIR, renaming them to be continuous
             for img in natsorted(os.listdir(currentDir)):
                 name, ext = path.splitext(path.join(currentDir, img))
@@ -133,12 +131,13 @@ def zipImages():
                 a size smaller than <M> (provided by the user).
     """
     topDir = os.getcwd()
-    print(topDir)
+
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     if not path.isdir(VOLS_DIR):
         os.mkdir(VOLS_DIR)
 
     IMGS_DIR = path.join(topDir, ZIP_DIR)
+    os.chdir(IMGS_DIR)
 
     # Organize chapters by volume
     if merge.params.volumize:
@@ -162,14 +161,13 @@ def zipImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            os.chdir(IMGS_DIR)
             with ZipFile(currentArchive, 'w') as zf:
                 for img in imgs:
                     LOGGER.debug('Adding: ' + img)
                     zf.write(img)
     else:
-        ARCHIVE = path.join(os.getcwd(), merge.params.archive)
-        with ZipFile(ARCHIVE + ARCHIVE_EXT, 'w') as zf:
+        ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
+        with ZipFile(ARCHIVE, 'w') as zf:
             LOGGER.info('Compressing images...')
             for root, dirs, imgs in walk('.'):
                 for img in natsorted(imgs):
@@ -218,7 +216,7 @@ def getVolumes(dir):
 
 # Script parameters
 merge.add_param('path', help='path to your cbz archives', type=str)
-merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='')
+merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='CBZ_Archive')
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
 
 if __name__ == "__main__":
