@@ -37,9 +37,14 @@ def merge(app):
         print('Use an absolute path, starting from "/"')
         raise e
 
-    extractCbz(merge.params.path)
-    renameImages()
-    zipImages()
+    # extractCbz(merge.params.path)
+    if merge.params.pdf:
+        convertToPdf()
+    else:
+        renameImages()
+
+    mergeImages()
+
     print('\nAll done!')
 
 
@@ -50,9 +55,7 @@ def extractCbz(dir):
     locating them in a root folder called ".extracted"
     :param dir: Directory containing the zip files.
     """
-    # Ensure that directory exists
-    if not path.isdir(path.join('.', EXTRACT_DIR)):
-        os.mkdir(EXTRACT_DIR)
+    makeDirectory(path.join('.'), EXTRACT_DIR)
 
     # Extract cbz files and move them to their own folder, inside
     # <EXTRACT_DIR>
@@ -64,11 +67,7 @@ def extractCbz(dir):
         name, ext = path.splitext(file)
         LOGGER.info('-'*50)
         extract_path = path.join(EXTRACT_DIR, name)
-        if not path.isdir(extract_path):
-            LOGGER.info('Creating directory for: ' + name)
-            os.mkdir(extract_path)
-        else:
-            LOGGER.info(extract_path + 'already exists. Using that directory for extracted files.')
+        makeDirectory(extract_path)
 
         LOGGER.info('Extracting: ' + name + '...')
         with ZipFile(file, 'r') as zipObj:
@@ -85,8 +84,7 @@ def renameImages():
     --chapterize: TODO: Determine how this case should be handled.
     """
 
-    if not path.isdir(ZIP_DIR):
-        os.mkdir(ZIP_DIR)
+    makeDirectory(ZIP_DIR)
 
     topDir = os.getcwd()
 
@@ -121,7 +119,7 @@ def renameImages():
             dirCounter += 1
 
 
-def zipImages():
+def mergeImages():
     """
     Zips the renamed images, using the selected option:
     DEFAULT: Merge all the images in a single cbz archive.
@@ -133,8 +131,7 @@ def zipImages():
     topDir = os.getcwd()
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
-    if not path.isdir(VOLS_DIR):
-        os.mkdir(VOLS_DIR)
+    makeDirectory(VOLS_DIR)
 
     IMGS_DIR = path.join(topDir, ZIP_DIR)
     os.chdir(IMGS_DIR)
@@ -209,6 +206,55 @@ def getVolumes(dir):
     return volumes
 
 
+def convertToPdf():
+    """
+    Converts extracted images to pdf
+    """
+
+    makeDirectory(ZIP_DIR)
+
+    topDir = os.getcwd()
+
+    if merge.params.volumize:
+        for dir in natsorted(os.listdir(EXTRACT_DIR)):
+            counter = 0
+            currentDir = path.join(topDir, EXTRACT_DIR, dir)
+            # Move images to ZIP_DIR, renaming them to be continuous
+            for img in natsorted(os.listdir(currentDir)):
+                name, ext = path.splitext(path.join(currentDir, img))
+
+                LOGGER.info('-'*50)
+                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
+                counter += 1
+                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
+                LOGGER.info('-'*50)
+    # TODO: Refractor to not reuse code. There must be a smarter way to do this.
+    else:
+        dirCounter = 0
+        for dir in natsorted(os.listdir(EXTRACT_DIR)):
+            counter = 0
+            currentDir = path.join(topDir, EXTRACT_DIR, dir)
+            # Move images to ZIP_DIR, renaming them to be continuous
+            for img in natsorted(os.listdir(currentDir)):
+                name, ext = path.splitext(path.join(currentDir, img))
+
+                LOGGER.info('-'*50)
+                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
+                counter += 1
+                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
+                LOGGER.info('-'*50)
+            dirCounter += 1
+
+
+def makeDirectory(name):
+    """
+    Creates directory <name>, but only if it doesn't
+    exist already.
+    :param name: Directory to create
+    """
+    if not path.isdir(name):
+        os.mkdir(name)
+
 
 
 
@@ -218,6 +264,7 @@ def getVolumes(dir):
 merge.add_param('path', help='path to your cbz archives', type=str)
 merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='CBZ_Archive')
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
+merge.add_param('--pdf', help='output in pdf format', default=False, action="store_true")
 
 if __name__ == "__main__":
     merge.run()
