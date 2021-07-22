@@ -11,6 +11,8 @@ from os import path
 from zipfile import ZipFile
 from shutil import copy2
 from natsort import natsorted
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.lib.pagesizes import A5
 from sys import exit
 
 LOGGER = cli.log.CommandLineLogger(__name__)
@@ -37,13 +39,13 @@ def merge(app):
         print('Use an absolute path, starting from "/"')
         raise e
 
-    # extractCbz(merge.params.path)
+    extractCbz(merge.params.path)
     if merge.params.pdf:
-        convertToPdf()
+        mapExtractedImages(convertToPdf)
     else:
-        renameImages()
+        mapExtractedImages(renameKeepExtension)
 
-    mergeImages()
+    # mergeImages()
 
     print('\nAll done!')
 
@@ -55,7 +57,7 @@ def extractCbz(dir):
     locating them in a root folder called ".extracted"
     :param dir: Directory containing the zip files.
     """
-    makeDirectory(path.join('.'), EXTRACT_DIR)
+    makeDirectory(path.join('.', EXTRACT_DIR))
 
     # Extract cbz files and move them to their own folder, inside
     # <EXTRACT_DIR>
@@ -88,35 +90,19 @@ def renameImages():
 
     topDir = os.getcwd()
 
-    if merge.params.volumize:
-        for dir in natsorted(os.listdir(EXTRACT_DIR)):
-            counter = 0
-            currentDir = path.join(topDir, EXTRACT_DIR, dir)
-            # Move images to ZIP_DIR, renaming them to be continuous
-            for img in natsorted(os.listdir(currentDir)):
-                name, ext = path.splitext(path.join(currentDir, img))
+    # if merge.params.volumize:
+    for dir in natsorted(os.listdir(EXTRACT_DIR)):
+        counter = 0
+        currentDir = path.join(topDir, EXTRACT_DIR, dir)
+        # Move images to ZIP_DIR, renaming them to be continuous
+        for img in natsorted(os.listdir(currentDir)):
+            name, ext = path.splitext(path.join(currentDir, img))
 
-                LOGGER.info('-'*50)
-                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
-                counter += 1
-                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
-                LOGGER.info('-'*50)
-    # TODO: Refractor to not reuse code. There must be a smarter way to do this.
-    else:
-        dirCounter = 0
-        for dir in natsorted(os.listdir(EXTRACT_DIR)):
-            counter = 0
-            currentDir = path.join(topDir, EXTRACT_DIR, dir)
-            # Move images to ZIP_DIR, renaming them to be continuous
-            for img in natsorted(os.listdir(currentDir)):
-                name, ext = path.splitext(path.join(currentDir, img))
-
-                LOGGER.info('-'*50)
-                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
-                counter += 1
-                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
-                LOGGER.info('-'*50)
-            dirCounter += 1
+            LOGGER.info('-'*50)
+            LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
+            counter += 1
+            copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
+            LOGGER.info('-'*50)
 
 
 def mergeImages():
@@ -206,45 +192,79 @@ def getVolumes(dir):
     return volumes
 
 
-def convertToPdf():
+def convertToPdf(img, destination, n):
     """
-    Converts extracted images to pdf
+    Converts <img> to pdf. Store the pdf in
+    the current directory
+    :param img: Path to image to convert.
+    :param destination: Full path to destination to save the pdf, but since
+           reportlib only saves files in the working directory, <desitation>
+           is used only to know how to name the created pdf.
+    :param n: A string indicating the current image number, for renaming and
+              ordering purposes.
     """
+    print(img)
+    origname, ext = path.splitext(img)
+    name = path.basename(destination) + '-' + n + '.pdf'
+    w, h = A5
 
+    LOGGER.info('-'*50)
+    LOGGER.info('Converting: ' + origname + ' ---> ' + name)
+    LOGGER.info('-'*50)
+
+    file = Canvas(name, pagesize=A5, pageCompression=merge.params.compression)
+    file.drawImage(img, 0, 0, w, h)
+    file.save()
+
+
+def renameKeepExtension(origin, destination, n):
+    """
+    Moves image located in <origin> to <destination> directory, renaming it
+    in the process.
+    :param origin: Path to image to move and rename.
+    :param destination: Path to destination directory
+    :param n: A string indicating the current image number, for renaming and
+              ordering purposes.
+    """
+    name, ext = path.splitext(origin)
+    destname = path.basename(destination) + '-' + n + ext
+
+    LOGGER.info('-'*50)
+    LOGGER.info('Renaming: ' + name + ' ---> ' + destname)
+    LOGGER.info('-'*50)
+
+    copy2(origin, path.join(destination + '-' + n + ext))
+
+
+def mapExtractedImages(f):
+    """
+    Applies function <f> to every image in EXTRACT_DIR.
+    :param f: Function to apply to each image
+    """
     makeDirectory(ZIP_DIR)
 
     topDir = os.getcwd()
-
-    if merge.params.volumize:
-        for dir in natsorted(os.listdir(EXTRACT_DIR)):
-            counter = 0
-            currentDir = path.join(topDir, EXTRACT_DIR, dir)
-            # Move images to ZIP_DIR, renaming them to be continuous
-            for img in natsorted(os.listdir(currentDir)):
-                name, ext = path.splitext(path.join(currentDir, img))
-
-                LOGGER.info('-'*50)
-                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
-                counter += 1
-                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
-                LOGGER.info('-'*50)
-    # TODO: Refractor to not reuse code. There must be a smarter way to do this.
+    if merge.params.pdf:
+        os.chdir(path.join(topDir, ZIP_DIR))
+        extractedImagesDir = path.join(topDir, EXTRACT_DIR)
     else:
-        dirCounter = 0
-        for dir in natsorted(os.listdir(EXTRACT_DIR)):
-            counter = 0
-            currentDir = path.join(topDir, EXTRACT_DIR, dir)
-            # Move images to ZIP_DIR, renaming them to be continuous
-            for img in natsorted(os.listdir(currentDir)):
-                name, ext = path.splitext(path.join(currentDir, img))
+        extractedImagesDir = EXTRACT_DIR
 
-                LOGGER.info('-'*50)
-                LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
-                counter += 1
-                copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, str(dirCounter) + '-' + str(counter) + ext))
-                LOGGER.info('-'*50)
-            dirCounter += 1
+    for dir in natsorted(os.listdir(extractedImagesDir)):
+        counter = 0
+        currentDir = path.join(topDir, EXTRACT_DIR, dir)
+        # Move images to ZIP_DIR, renaming them to be continuous
+        for img in natsorted(os.listdir(currentDir)):
+            print('second loop')
 
+            origin = path.join(currentDir, img)
+            destination = path.join(topDir, ZIP_DIR, dir)
+            n = str(counter)
+
+
+            f(origin, destination, n)
+
+            counter += 1
 
 def makeDirectory(name):
     """
@@ -265,6 +285,7 @@ merge.add_param('path', help='path to your cbz archives', type=str)
 merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='CBZ_Archive')
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
 merge.add_param('--pdf', help='output in pdf format', default=False, action="store_true")
+merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
 
 if __name__ == "__main__":
     merge.run()
