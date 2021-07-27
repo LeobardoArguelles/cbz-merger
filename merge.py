@@ -5,6 +5,8 @@ import cli.app
 import cli.log
 import logging
 import re
+from math import floor
+from threading import Thread
 from time import sleep
 from os import walk
 from os import path
@@ -29,7 +31,6 @@ ZIP_DIR = 'zipper'
 @cli.log.LoggingApp
 def merge(app):
     LOGGER.setLevel(merge.params)
-
     # Try to move to the path provided
     try:
         os.chdir(merge.params.path)
@@ -38,28 +39,39 @@ def merge(app):
         print('Use an absolute path, starting from "/"')
         raise e
 
-    extractCbz(merge.params.path)
-    if merge.params.pdf:
-        mapExtractedImages(convertToPdf)
-    else:
-        mapExtractedImages(renameKeepExtension)
-    mergeImages()
+    try:
+        threads = merge.params.threads
+        makeDirectory(path.join('.', EXTRACT_DIR))
+        if threads != 1:
+            zips = groupZips(os.listdir('.'), threads)
+
+            for group in zips:
+                Thread(target=extractCbz, args=(group,)).start()
+        else:
+            extractCbz(os.listdir('.'))
+    except Exception as e:
+        print(e)
+        raise e
+    # if merge.params.pdf:
+    #     mapExtractedImages(convertToPdf)
+    # else:
+    #     mapExtractedImages(renameKeepExtension)
+    # mergeImages()
 
     print('\nAll done!')
 
 
-def extractCbz(dir):
+def extractCbz(zips):
     """
     Extracts all zip (or cbz) archives found in dir, at
     the top level, to folders of the same name as the archive,
     locating them in a root folder called ".extracted"
-    :param dir: Directory containing the zip files.
+    :param zips: List of the zip files to extract
     """
-    makeDirectory(path.join('.', EXTRACT_DIR))
 
     # Extract cbz files and move them to their own folder, inside
     # <EXTRACT_DIR>
-    for file in natsorted(os.listdir('.')):
+    for file in natsorted(zips):
 
         if file == EXTRACT_DIR or file == ZIP_DIR:
             continue
@@ -330,6 +342,33 @@ def makeDirectory(name):
         os.mkdir(name)
 
 
+def groupZips(zips, n):
+    """
+    Makes <n> groups with equal number of files from the list of
+    <zips> files provided.
+    :param zips: List of files to be grouped
+    :param n: Number of groups to make
+    :return: List with <n> lists of files, where each list has the same
+            number of files, if possible. The last group may have less
+            files.
+    """
+    zips = natsorted(zips)
+    length = len(zips)
+    groupSize = floor(length / n)
+    groups = []
+
+    for i in range(0, length, groupSize):
+        if i + groupSize == length:
+            groups.append(zips[i:])
+        else:
+            groups.append(zips[i:i + groupSize])
+
+    if i + groupSize < length - 1:
+        groups.append(zips[i + groupSize:])
+
+    return groups
+
+
 
 
 
@@ -340,6 +379,7 @@ merge.add_param('-a', '--archive', help='name of your compressed cbz file', type
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
 merge.add_param('--pdf', help='output in pdf format', default=False, action="store_true")
 merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
+merge.add_param('--threads', help='numbers of threads to run concurrently', type=int, default=1)
 
 if __name__ == "__main__":
     try:
