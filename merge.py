@@ -13,6 +13,7 @@ from shutil import copy2
 from natsort import natsorted
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A5
+from PyPDF2 import PdfFileMerger
 from sys import exit
 
 LOGGER = cli.log.CommandLineLogger(__name__)
@@ -24,8 +25,6 @@ EXTRACT_DIR = '.extracted'
 # Directory with the renamed images, all together, ready to zip
 ZIP_DIR = 'zipper'
 
-# File extension for generated zip files
-ARCHIVE_EXT = '.cbz'
 
 @cli.log.LoggingApp
 def merge(app):
@@ -44,8 +43,7 @@ def merge(app):
         mapExtractedImages(convertToPdf)
     else:
         mapExtractedImages(renameKeepExtension)
-
-    # mergeImages()
+    mergeImages()
 
     print('\nAll done!')
 
@@ -74,7 +72,6 @@ def extractCbz(dir):
         LOGGER.info('Extracting: ' + name + '...')
         with ZipFile(file, 'r') as zipObj:
             zipObj.extractall(extract_path)
-        LOGGER.info('-'*50)
 
 
 def renameImages():
@@ -102,7 +99,6 @@ def renameImages():
             LOGGER.info('Renaming: ' + path.join(currentDir, img) + ' ---> ' + path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
             counter += 1
             copy2(path.join(currentDir, img), path.join(topDir, ZIP_DIR, dir + '-' + str(counter) + ext))
-            LOGGER.info('-'*50)
 
 
 def mergeImages():
@@ -116,6 +112,9 @@ def mergeImages():
     """
     topDir = os.getcwd()
 
+    # File extension for generated zip files
+    ARCHIVE_EXT = '.pdf' if merge.params.pdf else '.cbz'
+
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
 
@@ -128,7 +127,8 @@ def mergeImages():
         # Get stes of pre-sorted volumes keys, and all the images extracted
         volumes = getVolumes(IMGS_DIR)
 
-        # Zip images by volume
+        # Merge images by volume
+
         for volume, imgs in volumes.items():
             LOGGER.info('Archiving chapters of volume: ' + volume)
             currentArchive = path.join(VOLS_DIR, volume + ARCHIVE_EXT)
@@ -144,19 +144,73 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            with ZipFile(currentArchive, 'w') as zf:
+            if merge.params.pdf:
+                merger = PdfFileMerger()
                 for img in imgs:
-                    LOGGER.debug('Adding: ' + img)
-                    zf.write(img)
+                    merger.append(img)
+                merger.write(currentArchive)
+                merger.close()
+            else:
+                with ZipFile(currentArchive, 'w') as zf:
+                    for img in imgs:
+                        LOGGER.debug('Adding: ' + img)
+                        zf.write(img)
     else:
+        LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        with ZipFile(ARCHIVE, 'w') as zf:
-            LOGGER.info('Compressing images...')
-            for root, dirs, imgs in walk('.'):
-                for img in natsorted(imgs):
+        if merge.params.pdf:
+            # We will need to generate temp files and merge them.
+            LOGGER.info('We will need to create some temporary pdfs...')
+            queue = []
+            counter = 0
+            allImgs = natsorted(os.listdir('.'))
+            # Cap open files at 1 000 to prevent errors
+            imgsSets = segmentImgs(allImgs, 1000)
+
+            # Create a temporary file per image set
+            for imgs in imgsSets:
+                temp = path.join(topDir, merge.params.archive + '-' + str(counter) + ARCHIVE_EXT)
+                LOGGER.info('Creating temporary file: ' + temp)
+                merger = PdfFileMerger()
+                for img in imgs:
+                    merger.append(img)
+                merger.write(temp)
+                merger.close()
+                counter += 1
+                queue.append(temp)
+
+            # Merge temporary files and clean up
+            LOGGER.info('Now we can merge all temp files into our archive.')
+            merger = PdfFileMerger()
+            queueLength = len(queue)
+            counter = 1
+            while queue:
+                LOGGER.info(f"Merging temp file [{counter}/{queueLength}]")
+                merger.append(queue.pop(0))
+                counter += 1
+            merger.write(ARCHIVE)
+            merger.close()
+            # TODO: Clean up temporary files
+        else:
+            with ZipFile(ARCHIVE, 'w') as zf:
+                for img in natsorted(os.listdir('.')):
                     LOGGER.debug('Adding: ' + img)
                     zf.write(path.join(root, img))
 
+
+
+def segmentImgs(imgs, cap):
+    """
+    Segments imgs in n sets of maximum <cap> images.
+    :param imgs: Full list of all images
+    :param cap: Maximum number of images per set
+    :return: List containing n sets of images, where n
+            is how many sets of <cap> images can be created.
+    """
+    if len(imgs) <= cap:
+       return [imgs]
+
+    return [imgs[0:cap]] + segmentImgs(imgs[cap:], cap)
 
 def getVolumes(dir):
     """
@@ -203,14 +257,12 @@ def convertToPdf(img, destination, n):
     :param n: A string indicating the current image number, for renaming and
               ordering purposes.
     """
-    print(img)
     origname, ext = path.splitext(img)
     name = path.basename(destination) + '-' + n + '.pdf'
     w, h = A5
 
     LOGGER.info('-'*50)
     LOGGER.info('Converting: ' + origname + ' ---> ' + name)
-    LOGGER.info('-'*50)
 
     file = Canvas(name, pagesize=A5, pageCompression=merge.params.compression)
     file.drawImage(img, 0, 0, w, h)
@@ -231,7 +283,6 @@ def renameKeepExtension(origin, destination, n):
 
     LOGGER.info('-'*50)
     LOGGER.info('Renaming: ' + name + ' ---> ' + destname)
-    LOGGER.info('-'*50)
 
     copy2(origin, path.join(destination + '-' + n + ext))
 
@@ -255,7 +306,6 @@ def mapExtractedImages(f):
         currentDir = path.join(topDir, EXTRACT_DIR, dir)
         # Move images to ZIP_DIR, renaming them to be continuous
         for img in natsorted(os.listdir(currentDir)):
-            print('second loop')
 
             origin = path.join(currentDir, img)
             destination = path.join(topDir, ZIP_DIR, dir)
@@ -265,6 +315,10 @@ def mapExtractedImages(f):
             f(origin, destination, n)
 
             counter += 1
+
+    if merge.params.pdf:
+        # Return to topDir
+        os.chdir(topDir)
 
 def makeDirectory(name):
     """
@@ -288,4 +342,8 @@ merge.add_param('--pdf', help='output in pdf format', default=False, action="sto
 merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
 
 if __name__ == "__main__":
-    merge.run()
+    try:
+        merge.run()
+    except Exception as e:
+        print(e)
+        raise e
