@@ -28,9 +28,7 @@ EXTRACT_DIR = '.extracted'
 ZIP_DIR = 'zipper'
 
 # CPUs availables for parallel work
-CPU_COUNT = len(os.sched_getaffinity(0))
-
-
+CPU_COUNT = os.cpu_count()
 
 @cli.log.LoggingApp
 def merge(app):
@@ -49,16 +47,16 @@ def merge(app):
         zips = groupZips(os.listdir('.'), CPU_COUNT)
 
         pool.map(extractCbz, zips)
-        # for group in zips:
-        #     Process(target=extractCbz, args=(group,)).start()
     except Exception as e:
         print(e)
         raise e
-    # if merge.params.pdf:
-    #     mapExtractedImages(convertToPdf)
-    # else:
-    #     mapExtractedImages(renameKeepExtension)
-    # mergeImages()
+
+    makeDirectory(ZIP_DIR)
+    if merge.params.pdf:
+        mapExtractedImages(convertToPdf)
+    else:
+        mapExtractedImages(renameKeepExtension)
+    mergeImages()
 
     print('\nAll done!')
 
@@ -200,7 +198,13 @@ def mergeImages():
             counter = 1
             while queue:
                 LOGGER.info(f"Merging temp file [{counter}/{queueLength}]")
-                merger.append(queue.pop(0))
+
+                # Append file
+                currentFile = queue.pop(0)
+                merger.append(currentFile)
+
+                # Clean up file
+                os.remove(currentFile)
                 counter += 1
             merger.write(ARCHIVE)
             merger.close()
@@ -306,7 +310,6 @@ def mapExtractedImages(f):
     Applies function <f> to every image in EXTRACT_DIR.
     :param f: Function to apply to each image
     """
-    makeDirectory(ZIP_DIR)
 
     topDir = os.getcwd()
     if merge.params.pdf:
@@ -381,7 +384,6 @@ merge.add_param('-a', '--archive', help='name of your compressed cbz file', type
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
 merge.add_param('--pdf', help='output in pdf format', default=False, action="store_true")
 merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
-merge.add_param('--threads', help='numbers of threads to run concurrently', type=int, default=1)
 
 if __name__ == "__main__":
     try:
