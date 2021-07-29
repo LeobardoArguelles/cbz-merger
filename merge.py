@@ -6,7 +6,7 @@ import cli.log
 import logging
 import re
 from math import floor
-from threading import Thread
+from multiprocessing import Pool
 from time import sleep
 from os import walk
 from os import path
@@ -27,6 +27,10 @@ EXTRACT_DIR = '.extracted'
 # Directory with the renamed images, all together, ready to zip
 ZIP_DIR = 'zipper'
 
+# CPUs availables for parallel work
+CPU_COUNT = len(os.sched_getaffinity(0))
+
+
 
 @cli.log.LoggingApp
 def merge(app):
@@ -40,15 +44,13 @@ def merge(app):
         raise e
 
     try:
-        threads = merge.params.threads
+        pool = Pool(CPU_COUNT)
         makeDirectory(path.join('.', EXTRACT_DIR))
-        if threads != 1:
-            zips = groupZips(os.listdir('.'), threads)
+        zips = groupZips(os.listdir('.'), CPU_COUNT)
 
-            for group in zips:
-                Thread(target=extractCbz, args=(group,)).start()
-        else:
-            extractCbz(os.listdir('.'))
+        pool.map(extractCbz, zips)
+        # for group in zips:
+        #     Process(target=extractCbz, args=(group,)).start()
     except Exception as e:
         print(e)
         raise e
