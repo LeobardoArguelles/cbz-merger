@@ -42,8 +42,13 @@ def merge(app):
 
     # Set parameters
     LOGGER.setLevel(merge.params)
+
+    global main_dir
     main_dir = merge.params.path
+
+    global format
     format = 'pdf' if merge.params.pdf else 'cbz'
+
     # Try to move to the path provided
     try:
         os.chdir(main_dir)
@@ -62,13 +67,8 @@ def merge(app):
         # Rename / convert to pdf each extracted image
         makeDirectory(ZIP_DIR)
         dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
-        if format == 'pdf':
-            # We need to be inside ZIP_DIR because the library only creates files on the working directory
-            os.chdir(path.join(main_dir, ZIP_DIR))
         pool.map(mapExtractedImages, dirs)
 
-        if format == 'pdf':
-            os.chdir(main_dir, dirs)
         # mergeImages()
 
     except Exception as e:
@@ -332,6 +332,7 @@ def mapExtractedImages(dirs):
     # f: Function to apply to each image
     if format == 'pdf':
         f = convertToPdf
+        os.chdir(path.join(main_dir, ZIP_DIR))
     else:
         f = renameKeepExtension
 
@@ -349,6 +350,9 @@ def mapExtractedImages(dirs):
             f(origin, destination, n)
 
             counter += 1
+
+    if format == 'pdf':
+        os.chdir(main_dir, dirs)
 
 
 def makeDirectory(name):
