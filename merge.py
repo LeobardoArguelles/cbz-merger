@@ -31,13 +31,19 @@ ZIP_DIR = 'zipper'
 # Will be set to the user provided parameter
 main_dir = ''
 
+# Store the requested format to use globally
+format = ''
+
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
 
 @cli.log.LoggingApp
 def merge(app):
+
+    # Set parameters
     LOGGER.setLevel(merge.params)
     main_dir = merge.params.path
+    format = 'pdf' if merge.params.pdf else 'cbz'
     # Try to move to the path provided
     try:
         os.chdir(main_dir)
@@ -56,12 +62,12 @@ def merge(app):
         # Rename / convert to pdf each extracted image
         makeDirectory(ZIP_DIR)
         dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
-        if merge.params.pdf:
+        if format == 'pdf':
             # We need to be inside ZIP_DIR because the library only creates files on the working directory
             os.chdir(path.join(main_dir, ZIP_DIR))
         pool.map(mapExtractedImages, dirs)
 
-        if merge.params.pdf:
+        if format == 'pdf':
             os.chdir(main_dir, dirs)
         # mergeImages()
 
@@ -137,7 +143,7 @@ def mergeImages():
     topDir = os.getcwd()
 
     # File extension for generated zip files
-    ARCHIVE_EXT = '.pdf' if merge.params.pdf else '.cbz'
+    ARCHIVE_EXT = '.pdf' if format == 'pdf' else '.cbz'
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
@@ -168,7 +174,7 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if merge.params.pdf:
+            if format == 'pdf':
                 merger = PdfFileMerger()
                 for img in imgs:
                     merger.append(img)
@@ -182,7 +188,7 @@ def mergeImages():
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        if merge.params.pdf:
+        if format == 'pdf':
             # We will need to generate temp files and merge them.
             LOGGER.info('We will need to create some temporary pdfs...')
             queue = []
@@ -324,7 +330,7 @@ def mapExtractedImages(dirs):
     """
 
     # f: Function to apply to each image
-    if merge.params.pdf:
+    if format == 'pdf':
         f = convertToPdf
     else:
         f = renameKeepExtension
