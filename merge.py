@@ -6,7 +6,7 @@ import cli.log
 import logging
 import re
 from math import floor
-from multiprocessing import Pool
+from multiprocessing import Pool, Value
 from time import sleep
 from os import walk
 from os import path
@@ -32,7 +32,9 @@ ZIP_DIR = 'zipper'
 main_dir = ''
 
 # Store the requested format to use globally
-format = ''
+# We have to use multiprocessing.Value to share this var between processes
+# 'B' represents a cType unsigned char
+isPdf = Value('B')
 
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
@@ -46,8 +48,8 @@ def merge(app):
     global main_dir
     main_dir = merge.params.path
 
-    global format
-    format = 'pdf' if merge.params.pdf else 'cbz'
+    global isPdf
+    isPdf = 't' if merge.params.pdf else 'f'
 
     # Try to move to the path provided
     try:
@@ -143,7 +145,7 @@ def mergeImages():
     topDir = os.getcwd()
 
     # File extension for generated zip files
-    ARCHIVE_EXT = '.pdf' if format == 'pdf' else '.cbz'
+    ARCHIVE_EXT = '.pdf' if isPdf == 't' else '.cbz'
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
@@ -174,7 +176,7 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if format == 'pdf':
+            if isPdf == 't':
                 merger = PdfFileMerger()
                 for img in imgs:
                     merger.append(img)
@@ -188,7 +190,7 @@ def mergeImages():
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        if format == 'pdf':
+        if isPdf == 't':
             # We will need to generate temp files and merge them.
             LOGGER.info('We will need to create some temporary pdfs...')
             queue = []
@@ -330,7 +332,7 @@ def mapExtractedImages(dirs):
     """
 
     # f: Function to apply to each image
-    if format == 'pdf':
+    if isPdf == 't':
         f = convertToPdf
         os.chdir(path.join(main_dir, ZIP_DIR))
     else:
@@ -351,7 +353,7 @@ def mapExtractedImages(dirs):
 
             counter += 1
 
-    if format == 'pdf':
+    if isPdf == 't':
         os.chdir(main_dir, dirs)
 
 
