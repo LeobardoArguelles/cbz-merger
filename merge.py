@@ -27,36 +27,48 @@ EXTRACT_DIR = '.extracted'
 # Directory with the renamed images, all together, ready to zip
 ZIP_DIR = 'zipper'
 
+# Directory where original CBZ files are contained (the main directory)
+# Will be set to the user provided parameter
+main_dir = ''
+
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
 
 @cli.log.LoggingApp
 def merge(app):
     LOGGER.setLevel(merge.params)
+    main_dir = merge.params.path
     # Try to move to the path provided
     try:
-        os.chdir(merge.params.path)
+        os.chdir(main_dir)
     except FileNotFoundError as e:
         print('That path does not exist!')
         print('Use an absolute path, starting from "/"')
         raise e
 
     try:
+        # Extract zips
         pool = Pool(CPU_COUNT)
         makeDirectory(path.join('.', EXTRACT_DIR))
-        zips = groupZips(os.listdir('.'), CPU_COUNT)
+        # zips = groupZips(os.listdir('.'), CPU_COUNT)
+        # pool.map(extractCbz, zips)
 
-        pool.map(extractCbz, zips)
+        # Rename / convert to pdf each extracted image
+        makeDirectory(ZIP_DIR)
+        dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
+        if merge.params.pdf:
+            # We need to be inside ZIP_DIR because the library only creates files on the working directory
+            os.chdir(path.join(main_dir, ZIP_DIR))
+        pool.map(mapExtractedImages, dirs)
+
+        if merge.params.pdf:
+            os.chdir(main_dir, dirs)
+        # mergeImages()
+
     except Exception as e:
         print(e)
         raise e
 
-    makeDirectory(ZIP_DIR)
-    if merge.params.pdf:
-        mapExtractedImages(convertToPdf)
-    else:
-        mapExtractedImages(renameKeepExtension)
-    mergeImages()
 
     print('\nAll done!')
 
@@ -270,7 +282,7 @@ def convertToPdf(img, destination, n):
     the current directory
     :param img: Path to image to convert.
     :param destination: Full path to destination to save the pdf, but since
-           reportlib only saves files in the working directory, <desitation>
+           reportlib only saves files in the working directory, <destination>
            is used only to know how to name the created pdf.
     :param n: A string indicating the current image number, for renaming and
               ordering purposes.
@@ -305,27 +317,26 @@ def renameKeepExtension(origin, destination, n):
     copy2(origin, path.join(destination + '-' + n + ext))
 
 
-def mapExtractedImages(f):
+def mapExtractedImages(dirs):
     """
-    Applies function <f> to every image in EXTRACT_DIR.
-    :param f: Function to apply to each image
+    Applies function <f> to every image in dirs.
+    :param dirs: Collection of images to apply <f>
     """
 
-    topDir = os.getcwd()
+    # f: Function to apply to each image
     if merge.params.pdf:
-        os.chdir(path.join(topDir, ZIP_DIR))
-        extractedImagesDir = path.join(topDir, EXTRACT_DIR)
+        f = convertToPdf
     else:
-        extractedImagesDir = EXTRACT_DIR
+        f = renameKeepExtension
 
-    for dir in natsorted(os.listdir(extractedImagesDir)):
+    for dir in natsorted(dirs):
         counter = 0
-        currentDir = path.join(topDir, EXTRACT_DIR, dir)
+        currentDir = path.join(main_dir, EXTRACT_DIR, dir)
         # Move images to ZIP_DIR, renaming them to be continuous
         for img in natsorted(os.listdir(currentDir)):
 
             origin = path.join(currentDir, img)
-            destination = path.join(topDir, ZIP_DIR, dir)
+            destination = path.join(main_dir, ZIP_DIR, dir)
             n = str(counter)
 
 
@@ -333,9 +344,6 @@ def mapExtractedImages(f):
 
             counter += 1
 
-    if merge.params.pdf:
-        # Return to topDir
-        os.chdir(topDir)
 
 def makeDirectory(name):
     """
@@ -374,11 +382,10 @@ def groupZips(zips, n):
     return groups
 
 
+# Alias
+groupDirs = groupZips
 
-
-
-
-# Script parameters
+# parameters
 merge.add_param('path', help='path to your cbz archives', type=str)
 merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='CBZ_Archive')
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
