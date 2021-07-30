@@ -6,7 +6,7 @@ import cli.log
 import logging
 import re
 from math import floor
-from multiprocessing import Pool, Value
+from multiprocessing import Pool, Manager
 from time import sleep
 from os import walk
 from os import path
@@ -31,10 +31,8 @@ ZIP_DIR = 'zipper'
 # Will be set to the user provided parameter
 main_dir = ''
 
-# Store the requested format to use globally
-# We have to use multiprocessing.Value to share this var between processes
-# 'B' represents a cType unicode char
-isPdf = Value('u')
+# Store the requested format to use globally, with multiple processes
+mpGlobal = Manager().Namespace()
 
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
@@ -58,8 +56,8 @@ def merge(app):
         raise e
 
     try:
-        global isPdf
-        isPdf.value = 't' if merge.params.pdf else 'f'
+        global mpGlobal
+        mpGlobal.pdf = True if merge.params.pdf else False
 
         # Extract zips
         pool = Pool(CPU_COUNT)
@@ -146,7 +144,7 @@ def mergeImages():
     topDir = os.getcwd()
 
     # File extension for generated zip files
-    ARCHIVE_EXT = '.pdf' if isPdf.value == 't' else '.cbz'
+    ARCHIVE_EXT = '.pdf' if mpGlobal.pdf else '.cbz'
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
@@ -177,7 +175,7 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if isPdf.value == 't':
+            if mpGlobal.pdf:
                 merger = PdfFileMerger()
                 for img in imgs:
                     merger.append(img)
@@ -191,7 +189,7 @@ def mergeImages():
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        if isPdf.value == 't':
+        if mpGlobal.pdf:
             # We will need to generate temp files and merge them.
             LOGGER.info('We will need to create some temporary pdfs...')
             queue = []
@@ -333,7 +331,7 @@ def mapExtractedImages(dirs):
     """
 
     # f: Function to apply to each image
-    if isPdf.value == 't':
+    if mpGlobal.pdf:
         f = convertToPdf
         os.chdir(path.join(main_dir, ZIP_DIR))
     else:
@@ -354,7 +352,7 @@ def mapExtractedImages(dirs):
 
             counter += 1
 
-    if isPdf.value == 't':
+    if mpGlobal.pdf:
         os.chdir(main_dir, dirs)
 
 
