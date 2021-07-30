@@ -18,6 +18,8 @@ from reportlab.lib.pagesizes import A5
 from PyPDF2 import PdfFileMerger
 from sys import exit
 
+# TODO: Fix windows version, it breaks with global variables
+
 LOGGER = cli.log.CommandLineLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler())
 
