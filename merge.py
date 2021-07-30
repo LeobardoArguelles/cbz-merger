@@ -49,7 +49,7 @@ def merge(app):
     main_dir = merge.params.path
 
     global isPdf
-    isPdf = 't' if merge.params.pdf else 'f'
+    isPdf.value = 't' if merge.params.pdf else 'f'
 
     # Try to move to the path provided
     try:
@@ -145,7 +145,7 @@ def mergeImages():
     topDir = os.getcwd()
 
     # File extension for generated zip files
-    ARCHIVE_EXT = '.pdf' if isPdf == 't' else '.cbz'
+    ARCHIVE_EXT = '.pdf' if isPdf.value == 't' else '.cbz'
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
@@ -176,7 +176,7 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if isPdf == 't':
+            if isPdf.value == 't':
                 merger = PdfFileMerger()
                 for img in imgs:
                     merger.append(img)
@@ -190,7 +190,7 @@ def mergeImages():
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        if isPdf == 't':
+        if isPdf.value == 't':
             # We will need to generate temp files and merge them.
             LOGGER.info('We will need to create some temporary pdfs...')
             queue = []
@@ -332,7 +332,7 @@ def mapExtractedImages(dirs):
     """
 
     # f: Function to apply to each image
-    if isPdf == 't':
+    if isPdf.value == 't':
         f = convertToPdf
         os.chdir(path.join(main_dir, ZIP_DIR))
     else:
@@ -353,7 +353,7 @@ def mapExtractedImages(dirs):
 
             counter += 1
 
-    if isPdf == 't':
+    if isPdf.value == 't':
         os.chdir(main_dir, dirs)
 
 
