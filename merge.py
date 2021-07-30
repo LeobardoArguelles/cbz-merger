@@ -33,8 +33,8 @@ main_dir = ''
 
 # Store the requested format to use globally
 # We have to use multiprocessing.Value to share this var between processes
-# 'B' represents a cType unsigned char
-isPdf = Value('B')
+# 'B' represents a cType unicode char
+isPdf = Value('u')
 
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
@@ -48,8 +48,6 @@ def merge(app):
     global main_dir
     main_dir = merge.params.path
 
-    global isPdf
-    isPdf.value = 't' if merge.params.pdf else 'f'
 
     # Try to move to the path provided
     try:
@@ -60,6 +58,9 @@ def merge(app):
         raise e
 
     try:
+        global isPdf
+        isPdf.value = 't' if merge.params.pdf else 'f'
+
         # Extract zips
         pool = Pool(CPU_COUNT)
         makeDirectory(path.join('.', EXTRACT_DIR))
