@@ -34,7 +34,7 @@ ZIP_DIR = 'zipper'
 main_dir = ''
 
 # Store the requested format to use globally, with multiple processes
-mpGlobal = Manager().Namespace()
+# mpGlobal = Manager().Namespace()
 
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
@@ -406,8 +406,9 @@ merge.add_param('--pdf', help='output in pdf format', default=False, action="sto
 merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
 
 if __name__ == "__main__":
-    try:
-        merge.run()
-    except Exception as e:
-        print(e)
-        raise e
+    with Manager.Namespace() as mpGlobal:
+        try:
+            merge.run()
+        except Exception as e:
+            print(e)
+            raise e
