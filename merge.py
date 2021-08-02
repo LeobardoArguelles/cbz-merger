@@ -48,6 +48,7 @@ def merge(app):
     global main_dir
     main_dir = merge.params.path
 
+    namespace = Manager().Namespace()
 
     # Try to move to the path provided
     try:
@@ -58,8 +59,7 @@ def merge(app):
         raise e
 
     try:
-        global mpGlobal
-        mpGlobal.pdf = True if merge.params.pdf else False
+        namespace.pdf = True if merge.params.pdf else False
 
         # Extract zips
         pool = Pool(CPU_COUNT)
@@ -333,7 +333,7 @@ def mapExtractedImages(dirs):
     """
 
     # f: Function to apply to each image
-    if mpGlobal.pdf:
+    if merge.params.pdf:
         f = convertToPdf
         os.chdir(path.join(main_dir, ZIP_DIR))
     else:
@@ -406,9 +406,8 @@ merge.add_param('--pdf', help='output in pdf format', default=False, action="sto
 merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
 
 if __name__ == "__main__":
-    with Manager.Namespace() as mpGlobal:
-        try:
-            merge.run()
-        except Exception as e:
-            print(e)
-            raise e
+    try:
+        merge.run()
+    except Exception as e:
+        print(e)
+        raise e
