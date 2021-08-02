@@ -245,7 +245,7 @@ def segmentImgs(imgs, cap):
             is how many sets of <cap> images can be created.
     """
     if len(imgs) <= cap:
-       return [imgs]
+       return imgs
 
     return [imgs[0:cap]] + segmentImgs(imgs[cap:], cap)
 
