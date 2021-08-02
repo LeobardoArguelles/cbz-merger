@@ -174,17 +174,10 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if isPdf:
-                merger = PdfFileMerger()
-                for img in imgs:
-                    merger.append(img)
-                merger.write(currentArchive)
-                merger.close()
-            else:
-                with ZipFile(currentArchive, 'w') as zf:
-                    for img in imgs:
-                        LOGGER.debug('Adding: ' + img)
-                        zf.write(img)
+            p = Process(target=makeVolume, args=(currentArchive, isPdf, imgs))
+            p.start()
+            p.join()
+
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
@@ -416,6 +409,26 @@ def makeTempPdf(path, imgs):
     merger.write(path)
     merger.close()
 
+
+def makeVolume(path, isPdf, imgs):
+    """
+    Create a single volume filled with <imgs>, and save it to <path>
+    :param path: Path where to save the volume to
+    :param isPdf: Indicates if the user requested pdf files or not
+    :param imgs: Images to create volume with
+    """
+
+    if isPdf:
+        merger = PdfFileMerger()
+        for img in imgs:
+            merger.append(img)
+        merger.write(path)
+        merger.close()
+    else:
+        with ZipFile(path, 'w') as zf:
+            for img in imgs:
+                LOGGER.debug('Adding: ' + img)
+                zf.write(img)
 
 # Alias
 groupDirs = groupZips
