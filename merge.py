@@ -198,14 +198,12 @@ def mergeImages():
             imgsSets = segmentImgs(allImgs, 1000)
 
             # Create a temporary file per image set
+            LOGGER.info('Creating temporary files')
             for imgs in imgsSets:
                 temp = path.join(topDir, merge.params.archive + '-' + str(counter) + ARCHIVE_EXT)
-                LOGGER.info('Creating temporary file: ' + temp)
-                merger = PdfFileMerger()
-                for img in imgs:
-                    merger.append(img)
-                merger.write(temp)
-                merger.close()
+                p = Process(target=makeTempPdf, args=(temp, imgs))
+                p.start()
+                p.join()
                 counter += 1
                 queue.append(temp)
 
@@ -214,7 +212,7 @@ def mergeImages():
             merger = PdfFileMerger()
             queueLength = len(queue)
             counter = 1
-            for i in range(len(queue)):
+            for i in range(queueLength):
                 LOGGER.info(f"Merging temp file [{counter}/{queueLength}]")
 
                 # Append file
@@ -245,7 +243,7 @@ def segmentImgs(imgs, cap):
             is how many sets of <cap> images can be created.
     """
     if len(imgs) <= cap:
-       return imgs
+       return [imgs]
 
     return [imgs[0:cap]] + segmentImgs(imgs[cap:], cap)
 
@@ -402,6 +400,21 @@ def askIfPdf():
     :return: True if user asked for pdf output, False otherwise
     """
     return merge.params.pdf
+
+
+def makeTempPdf(path, imgs):
+    """
+    Creates a temporary pdf file to hold imgs. The idea is to use this function
+    in parallel, so that several files get processed at once, and then they only
+    have to be merged together on a single thread/core.
+    :param path: Path to save the temp file to
+    :param imgs: Pdf files of imgs to be merged
+    """
+    merger = PdfFileMerger()
+    for img in imgs:
+        merger.append(img)
+    merger.write(path)
+    merger.close()
 
 
 # Alias
