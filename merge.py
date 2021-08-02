@@ -6,7 +6,7 @@ import cli.log
 import logging
 import re
 from math import floor
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Process
 from time import sleep
 from os import walk
 from os import path
@@ -17,8 +17,6 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A5
 from PyPDF2 import PdfFileMerger
 from sys import exit
-
-# TODO: Fix windows version, it breaks with global variables
 
 LOGGER = cli.log.CommandLineLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler())
@@ -33,9 +31,6 @@ ZIP_DIR = 'zipper'
 # Will be set to the user provided parameter
 main_dir = ''
 
-# Store the requested format to use globally, with multiple processes
-# mpGlobal = Manager().Namespace()
-
 # CPUs availables for parallel work
 CPU_COUNT = os.cpu_count()
 
@@ -48,8 +43,6 @@ def merge(app):
     global main_dir
     main_dir = merge.params.path
 
-    namespace = Manager().Namespace()
-
     # Try to move to the path provided
     try:
         os.chdir(main_dir)
@@ -59,20 +52,23 @@ def merge(app):
         raise e
 
     try:
-        namespace.pdf = True if merge.params.pdf else False
+        isPdf = True if merge.params.pdf else False
 
         # Extract zips
-        pool = Pool(CPU_COUNT)
-        makeDirectory(path.join('.', EXTRACT_DIR))
+        # pool = Pool(CPU_COUNT)
+        # makeDirectory(path.join('.', EXTRACT_DIR))
         # zips = groupZips(os.listdir('.'), CPU_COUNT)
         # pool.map(extractCbz, zips)
 
-        # Rename / convert to pdf each extracted image
-        makeDirectory(ZIP_DIR)
-        dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
-        pool.map(mapExtractedImages, dirs)
+        # # Rename / convert to pdf each extracted image
+        # makeDirectory(ZIP_DIR)
+        # dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
+        # for i in range(len(dirs)):
+        #     p = Process(target=mapExtractedImages, args=(dirs[i], isPdf, main_dir))
+        #     p.start()
+        #     p.join()
 
-        # mergeImages()
+        mergeImages()
 
     except Exception as e:
         print(e)
@@ -144,9 +140,10 @@ def mergeImages():
                 a size smaller than <M> (provided by the user).
     """
     topDir = os.getcwd()
+    isPdf = askIfPdf()
 
     # File extension for generated zip files
-    ARCHIVE_EXT = '.pdf' if mpGlobal.pdf else '.cbz'
+    ARCHIVE_EXT = '.pdf' if isPdf else '.cbz'
 
     VOLS_DIR = path.join(topDir, 'zipped_volumes')
     makeDirectory(VOLS_DIR)
@@ -177,7 +174,7 @@ def mergeImages():
                 |--- ...
                 |--- Vol 99-99.jpg
             """
-            if mpGlobal.pdf:
+            if isPdf:
                 merger = PdfFileMerger()
                 for img in imgs:
                     merger.append(img)
@@ -191,7 +188,7 @@ def mergeImages():
     else:
         LOGGER.info('Creating archive...')
         ARCHIVE = path.join(topDir, merge.params.archive + ARCHIVE_EXT)
-        if mpGlobal.pdf:
+        if isPdf:
             # We will need to generate temp files and merge them.
             LOGGER.info('We will need to create some temporary pdfs...')
             queue = []
@@ -217,19 +214,20 @@ def mergeImages():
             merger = PdfFileMerger()
             queueLength = len(queue)
             counter = 1
-            while queue:
+            for i in range(len(queue)):
                 LOGGER.info(f"Merging temp file [{counter}/{queueLength}]")
 
                 # Append file
-                currentFile = queue.pop(0)
+                currentFile = queue[0]
                 merger.append(currentFile)
 
-                # Clean up file
-                os.remove(currentFile)
                 counter += 1
             merger.write(ARCHIVE)
             merger.close()
-            # TODO: Clean up temporary files
+            # Clean up temporary files
+            while queue:
+                os.remove(queue.pop())
+
         else:
             with ZipFile(ARCHIVE, 'w') as zf:
                 for img in natsorted(os.listdir('.')):
@@ -326,14 +324,16 @@ def renameKeepExtension(origin, destination, n):
     copy2(origin, path.join(destination + '-' + n + ext))
 
 
-def mapExtractedImages(dirs):
+def mapExtractedImages(dirs, isPdf, main_dir):
     """
     Applies function <f> to every image in dirs.
     :param dirs: Collection of images to apply <f>
+    :param isPdg: Indicates is user asked for pdf output
+    :param main_dir: Top level dir where all files are located, as indicated by user
     """
 
     # f: Function to apply to each image
-    if merge.params.pdf:
+    if isPdf:
         f = convertToPdf
         os.chdir(path.join(main_dir, ZIP_DIR))
     else:
@@ -354,8 +354,8 @@ def mapExtractedImages(dirs):
 
             counter += 1
 
-    if mpGlobal.pdf:
-        os.chdir(main_dir, dirs)
+    if isPdf:
+        os.chdir(main_dir)
 
 
 def makeDirectory(name):
@@ -393,6 +393,15 @@ def groupZips(zips, n):
         groups.append(zips[i + groupSize:])
 
     return groups
+
+
+def askIfPdf():
+    """
+    Checks if user asked for pdf outputs, which is denoted if merge.params.pdf
+    is set to true.
+    :return: True if user asked for pdf output, False otherwise
+    """
+    return merge.params.pdf
 
 
 # Alias
