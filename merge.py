@@ -55,18 +55,18 @@ def merge(app):
         isPdf = True if merge.params.pdf else False
 
         # Extract zips
-        # pool = Pool(CPU_COUNT)
-        # makeDirectory(path.join('.', EXTRACT_DIR))
-        # zips = groupZips(os.listdir('.'), CPU_COUNT)
-        # pool.map(extractCbz, zips)
+        pool = Pool(CPU_COUNT)
+        makeDirectory(path.join('.', EXTRACT_DIR))
+        zips = groupZips(os.listdir('.'), CPU_COUNT)
+        pool.map(extractCbz, zips)
 
-        # # Rename / convert to pdf each extracted image
-        # makeDirectory(ZIP_DIR)
-        # dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
-        # for i in range(len(dirs)):
-        #     p = Process(target=mapExtractedImages, args=(dirs[i], isPdf, main_dir))
-        #     p.start()
-        #     p.join()
+        # Rename / convert to pdf each extracted image
+        makeDirectory(ZIP_DIR)
+        dirs = groupDirs(os.listdir(path.join('.', EXTRACT_DIR)), CPU_COUNT)
+        for i in range(len(dirs)):
+            p = Process(target=mapExtractedImages, args=(dirs[i], isPdf, main_dir))
+            p.start()
+            p.join()
 
         mergeImages()
 
