@@ -1,0 +1,113 @@
+* CBZ Merger
+
+** What is it?
+A cli-tool to merge several CBZ (zip) files into one main archive, or several archives divided by volume.
+
+** Why use it?
+Works great if you download full comics/mangas, which come in come organized in CBZ files (one CBZ per chapter, each one containing
+one image per page).
+That's a lot of images!
+
+And if you would rather organize them in a single main file, or a file per volume, this tool will do the work for you.
+
+This is also great if you read them on some kind of e-reader, like Kobo, since you will have less files to manage.
+
+[[./imgs/cbz-showcase.png]]
+
+** Export modes
+You can merge all your files into one of the two following options:
++ One main file containing all the pages of your comic/manga.
++ One file per volume, each one containing only the pages of its chapters.
+
+*Each of these can be exported into either PDF, or CBZ.*
+
+** Pre-requisites
+You'll only need Python3 and pip.
+
+I'm using Python 3.9.5, so if you got any problems, try to use at least
+this version.
+
+Get the latest version in your favorite Linux flavor.
+(Snipets taken from [[https://www.csestack.org/install-python-on-linux/][CSEstack]] and [[https://linuxconfig.org/install-pip-on-linux/][linuxconfig]])
+
+*** APT package manager (Debian / Ubuntu / Linux Mint)
+#+begin_src sh
+# First update your local system's repository list
+sudo apt-get update
+# Install python3
+sudo apt-get install python
+# Install pip for python3
+sudo apt install python3-pip
+#+end_src
+
+*** Arch Linux
+#+begin_src sh
+# Install python3
+sudo pacman -S python
+# Install pip
+sudo pacman -S python-pip
+#+end_src
+
+*** DNF package manager (Fedora)
+#+begin_src sh
+# This installs both python and pip, in a nice little bundle. How convenient!
+sudo dnf install python3
+#+end_src
+
+*** Yum package manager (Redhat / RHEL / CentOS)
+#+begin_src sh
+# Install python3
+sudo yum install python
+# pip is not available on core repositories, so you'll need this
+sudo yum install epel-release
+# Now you can actually install pip
+sudo yum install python-pip
+#+end_src
+
+** Installation
+You'll need to:
+
+1. Clone the repository
+2. Move inside the repo's directory
+3. [Optional] Create a virtual environment
+   This might not be obligatory, but is highly recommendable to have a virtual environment for each project, to avoid conflicts between libraries and
+   versions.
+4. Install the requirements (remember that you need Python for this)
+
+#+begin_src sh
+# Get the repo
+git clone https://github.com/LeobardoArguelles/cbz-merger.git
+cd cbz-merger
+
+# Create a virtual environment
+pip install virtualenv
+python -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install the requirements
+pip install -r requirements.txt
+#+end_src
+
+Then go into [[*Usage][Usage]].
+
+** Usage
+Inside the repository:
+
+*** Basic usage
+#+begin_src sh
+
+#+end_src
+
+** Closing thoughts
+This is the first tool that I actually release for public usage.
+
+I made it for myself, but I tried to generalize its usage so that it can be used by other persons.
+I hope that you find it useful.
+
+If you have any problem feel free to open an issue, and if you've got suggestions or ideas to expand this tool,
+I would love for you to get in touch.
+
+** TODO
+- [ ] Finish usage section from README.org
