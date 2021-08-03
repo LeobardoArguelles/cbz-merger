@@ -34,8 +34,10 @@ Get the latest version in your favorite Linux flavor.
 #+begin_src sh
 # First update your local system's repository list
 sudo apt-get update
+
 # Install python3
 sudo apt-get install python
+
 # Install pip for python3
 sudo apt install python3-pip
 #+end_src
@@ -44,6 +46,7 @@ sudo apt install python3-pip
 #+begin_src sh
 # Install python3
 sudo pacman -S python
+
 # Install pip
 sudo pacman -S python-pip
 #+end_src
@@ -58,8 +61,10 @@ sudo dnf install python3
 #+begin_src sh
 # Install python3
 sudo yum install python
+
 # pip is not available on core repositories, so you'll need this
 sudo yum install epel-release
+
 # Now you can actually install pip
 sudo yum install python-pip
 #+end_src
@@ -103,8 +108,8 @@ Inside the repository:
 ** Closing thoughts
 This is the first tool that I actually release for public usage.
 
-I made it for myself, but I tried to generalize its usage so that it can be used by other persons.
-I hope that you find it useful.
+I made it for myself, but I tried to generalize it so that it can be used by other persons.
+I hope that you find it helpful.
 
 If you have any problem feel free to open an issue, and if you've got suggestions or ideas to expand this tool,
 I would love for you to get in touch.
