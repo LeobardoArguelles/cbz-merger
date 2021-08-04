@@ -38,10 +38,7 @@ You can merge all your files into one of the two following options:
 You'll need:
 + Python3
 + pip
-+ Your CBZ files should have ordered alphabetically
-  This should be de default if you download in bulk your mangas,
-  because they should come sorted in some way so that you can easily
-  read each chapter in order.
++ Your CBZ files should have ordered alphabetically. (This should be de default if you download in bulk your mangas, because they should come sorted in some way so that you can easily read each chapter in order)
 
 I'm using Python 3.9.5, so if you got any problems, try to use at least
 this version.
@@ -117,7 +114,14 @@ pip install -r requirements.txt
 Then go into usage.
 
 * Usage
-Inside the repository:
+Remember that you have to be inside the directory of your cloned repository.
+From there, you can:
++ Merge all your CBZs into a single file
++ Merge your CBZ files by volume
+
+Both of these can be exported to:
++ PDF
++ CBZ
 
 ** Create a single archive file
 #+begin_src sh
