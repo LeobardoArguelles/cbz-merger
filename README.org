@@ -22,7 +22,13 @@ You can merge all your files into one of the two following options:
 *Each of these can be exported into either PDF, or CBZ.*
 
 ** Pre-requisites
-You'll only need Python3 and pip.
+You'll need:
++ Python3
++ pip
++ Your CBZ files should have ordered alphabetically
+  This should be de default if you download in bulk your mangas,
+  because they should come sorted in some way so that you can easily
+  read each chapter in order.
 
 I'm using Python 3.9.5, so if you got any problems, try to use at least
 this version.
@@ -95,14 +101,92 @@ source venv/bin/activate
 pip install -r requirements.txt
 #+end_src
 
-Then go into [[*Usage][Usage]].
+Then go into usage.
 
 ** Usage
 Inside the repository:
 
-*** Basic usage
+*** Create a single archive file
 #+begin_src sh
+# One of either:
 
+# Create CBZ archive
+python ./merge.py <path/to/cbzs/directory> -a <archiveName>
+
+# Convert to PDF
+python ./merge.py <path/to/cbzs/directory> -a <archiveName> --pdf
+#+end_src
+Where:
++ <path/to/cbz/directory> is the path to the directory that contains all the CBZ files to be merged.
++ <archiveName> is how you want to name the final file.
+
+**** Example
+Using a file structure where your CBZs are stored inside a directory called "mangas":
+/
+│
+├── share
+│   └── mangas  <-- This is the directory we want!
+│       ├ [Vol 00] Chapter 1.cbz
+│       ├ [Vol 00] Chapter 2.cbz
+│       ├ [Vol 00] Chapter 3.cbz
+│       ├ [Vol 00] Chapter 4.cbz
+│       ├ ...
+│       └ [Vol 19] Chapter 268.cbz
+....
+
++ Using this structure, our path would be: ~/share/mangas~
++ Assume we want to call our archive as: ~myArchive~
++ And finally, we want to generate it as a CBZ, so we *won't* use the ~--pdf~ option.
+
+Then, we would run the command as:
+#+begin_src sh
+python ./merge.py /share/mangas -a myArchive
+#+end_src
+
+*** Create a file per volume
+This is great if you would rather to have several smaller files per
+volume, instead of having one monolithic main file with thousands
+of images.
+
+#+begin_src sh
+# One of either:
+
+# Each volume is a CBZ archive
+python ./merge.py <path/to/cbzs/directory> -vo "<regex>"
+
+# Each volume is a PDF file
+python ./merge.py <path/to/cbzs/directory> -vo "<regex>" --pdf
+#+end_src
+Where:
++ <path/to/cbz/directory> is the path to the directory that contains all the CBZ files to be merged.
++ <regex> is a [[https://docs.python.org/3/howto/regex.html][regular expression]] that tells the program the naming convention of your volumes.
+
+Note that you don't need to specify an output name (like when
+generating an archive), because the files will be named just like
+the volumes.
+
+**** Example
+To use this mode your CBZ files must have their volume in their name.
+For example, using the same structure as in the previous example:
+/
+│
+├── share
+│   └── mangas  <-- This is the directory we want!
+│       ├ [Vol 00] Chapter 1.cbz
+│       ├ [Vol 00] Chapter 2.cbz
+│       ├ [Vol 00] Chapter 3.cbz
+│       ├ [Vol 00] Chapter 4.cbz
+│       ├ ...
+│       └ [Vol 19] Chapter 268.cbz
+....
+
++ Our path would be: ~/share/mangas~
++ We want to output a PDF file per volume, so we use ~--pdf~.
++ Our regex could be either ~Vol \d\d~ or ~Vol \d{2}~.
+
+Then, we would run:
+#+begin_src sh
+python ./merge.py /share/mangas -vo "Vol \d\d" --pdf
 #+end_src
 
 ** Closing thoughts
@@ -114,5 +198,3 @@ I hope that you find it helpful.
 If you have any problem feel free to open an issue, and if you've got suggestions or ideas to expand this tool,
 I would love for you to get in touch.
 
-** TODO
-- [ ] Finish usage section from README.org
