@@ -122,7 +122,7 @@ Where:
 
 **** Example
 Using a file structure where your CBZs are stored inside a directory called "mangas":
-```
+#+begin_example
 /
 │
 ├── share
@@ -134,7 +134,8 @@ Using a file structure where your CBZs are stored inside a directory called "man
 │       ├ ...
 │       └ [Vol 19] Chapter 268.cbz
 ....
-```
+#+end_example
+
 + Using this structure, our path would be: ~/share/mangas~
 + Assume we want to call our archive as: ~myArchive~
 + And finally, we want to generate it as a CBZ, so we *won't* use the ~--pdf~ option.
@@ -169,7 +170,7 @@ the volumes.
 **** Example
 To use this mode your CBZ files must have their volume in their name.
 For example, using the same structure as in the previous example:
-```
+#+begin_example
 /
 │
 ├── share
@@ -181,7 +182,7 @@ For example, using the same structure as in the previous example:
 │       ├ ...
 │       └ [Vol 19] Chapter 268.cbz
 ....
-```
+#+end_example
 + Our path would be: ~/share/mangas~
 + We want to output a PDF file per volume, so we use ~--pdf~.
 + Our regex could be either ~Vol \d\d~ or ~Vol \d{2}~.
