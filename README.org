@@ -1,5 +1,15 @@
 * CBZ Merger
 
+** Contents :toc:
+- [[#cbz-merger][CBZ Merger]]
+  - [[#what-is-it][What is it?]]
+  - [[#why-use-it][Why use it?]]
+  - [[#export-modes][Export modes]]
+  - [[#pre-requisites][Pre-requisites]]
+  - [[#installation][Installation]]
+  - [[#usage][Usage]]
+  - [[#closing-thoughts][Closing thoughts]]
+
 ** What is it?
 A cli-tool to merge several CBZ (zip) files into one main archive, or several archives divided by volume.
 
