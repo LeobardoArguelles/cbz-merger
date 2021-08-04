@@ -1,19 +1,22 @@
-* CBZ Merger
+* Contents :toc:
+- [[#what-is-it][What is it?]]
+- [[#why-use-it][Why use it?]]
+- [[#export-modes][Export modes]]
+- [[#pre-requisites][Pre-requisites]]
+  - [[#apt-package-manager-debian--ubuntu--linux-mint][APT package manager (Debian / Ubuntu / Linux Mint)]]
+  - [[#arch-linux][Arch Linux]]
+  - [[#dnf-package-manager-fedora][DNF package manager (Fedora)]]
+  - [[#yum-package-manager-redhat--rhel--centos][Yum package manager (Redhat / RHEL / CentOS)]]
+- [[#installation][Installation]]
+- [[#usage][Usage]]
+  - [[#create-a-single-archive-file][Create a single archive file]]
+  - [[#create-a-file-per-volume][Create a file per volume]]
+- [[#closing-thoughts][Closing thoughts]]
 
-** Contents :toc:
-- [[#cbz-merger][CBZ Merger]]
-  - [[#what-is-it][What is it?]]
-  - [[#why-use-it][Why use it?]]
-  - [[#export-modes][Export modes]]
-  - [[#pre-requisites][Pre-requisites]]
-  - [[#installation][Installation]]
-  - [[#usage][Usage]]
-  - [[#closing-thoughts][Closing thoughts]]
-
-** What is it?
+* What is it?
 A cli-tool to merge several CBZ (zip) files into one main archive, or several archives divided by volume.
 
-** Why use it?
+* Why use it?
 Works great if you download full comics/mangas, which come in come organized in CBZ files (one CBZ per chapter, each one containing
 one image per page).
 That's a lot of images!
@@ -24,14 +27,14 @@ This is also great if you read them on some kind of e-reader, like Kobo, since y
 
 [[./imgs/cbz-showcase.png]]
 
-** Export modes
+* Export modes
 You can merge all your files into one of the two following options:
 + One main file containing all the pages of your comic/manga.
 + One file per volume, each one containing only the pages of its chapters.
 
 *Each of these can be exported into either PDF, or CBZ.*
 
-** Pre-requisites
+* Pre-requisites
 You'll need:
 + Python3
 + pip
@@ -46,7 +49,7 @@ this version.
 Get the latest version in your favorite Linux flavor.
 (Snipets taken from [[https://www.csestack.org/install-python-on-linux/][CSEstack]] and [[https://linuxconfig.org/install-pip-on-linux/][linuxconfig]])
 
-*** APT package manager (Debian / Ubuntu / Linux Mint)
+** APT package manager (Debian / Ubuntu / Linux Mint)
 #+begin_src sh
 # First update your local system's repository list
 sudo apt-get update
@@ -58,7 +61,7 @@ sudo apt-get install python
 sudo apt install python3-pip
 #+end_src
 
-*** Arch Linux
+** Arch Linux
 #+begin_src sh
 # Install python3
 sudo pacman -S python
@@ -67,13 +70,13 @@ sudo pacman -S python
 sudo pacman -S python-pip
 #+end_src
 
-*** DNF package manager (Fedora)
+** DNF package manager (Fedora)
 #+begin_src sh
 # This installs both python and pip, in a nice little bundle. How convenient!
 sudo dnf install python3
 #+end_src
 
-*** Yum package manager (Redhat / RHEL / CentOS)
+** Yum package manager (Redhat / RHEL / CentOS)
 #+begin_src sh
 # Install python3
 sudo yum install python
@@ -85,7 +88,7 @@ sudo yum install epel-release
 sudo yum install python-pip
 #+end_src
 
-** Installation
+* Installation
 You'll need to:
 
 1. Clone the repository
@@ -113,10 +116,10 @@ pip install -r requirements.txt
 
 Then go into usage.
 
-** Usage
+* Usage
 Inside the repository:
 
-*** Create a single archive file
+** Create a single archive file
 #+begin_src sh
 # One of either:
 
@@ -130,7 +133,7 @@ Where:
 + <path/to/cbz/directory> is the path to the directory that contains all the CBZ files to be merged.
 + <archiveName> is how you want to name the final file.
 
-**** Example
+*** Example
 Using a file structure where your CBZs are stored inside a directory called "mangas":
 #+begin_example
 /
@@ -155,7 +158,7 @@ Then, we would run the command as:
 python ./merge.py /share/mangas -a myArchive
 #+end_src
 
-*** Create a file per volume
+** Create a file per volume
 This is great if you would rather to have several smaller files per
 volume, instead of having one monolithic main file with thousands
 of images.
@@ -177,7 +180,7 @@ Note that you don't need to specify an output name (like when
 generating an archive), because the files will be named just like
 the volumes.
 
-**** Example
+*** Example
 To use this mode your CBZ files must have their volume in their name.
 For example, using the same structure as in the previous example:
 #+begin_example
@@ -202,7 +205,7 @@ Then, we would run:
 python ./merge.py /share/mangas -vo "Vol \d\d" --pdf
 #+end_src
 
-** Closing thoughts
+* Closing thoughts
 This is the first tool that I actually release for public usage.
 
 I made it for myself, but I tried to generalize it so that it can be used by other persons.
