@@ -209,7 +209,7 @@ def mergeImages():
                 LOGGER.info(f"Merging temp file [{counter}/{queueLength}]")
 
                 # Append file
-                currentFile = queue[0]
+                currentFile = queue[i]
                 merger.append(currentFile)
 
                 counter += 1
