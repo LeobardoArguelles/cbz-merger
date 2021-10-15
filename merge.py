@@ -438,7 +438,7 @@ merge.add_param('path', help='path to your cbz archives', type=str)
 merge.add_param('-a', '--archive', help='name of your compressed cbz file', type=str, default='CBZ_Archive')
 merge.add_param('-vo', '--volumize', help='generate one archive per volume, using user provided regex', default=False, type=str)
 merge.add_param('--pdf', help='output in pdf format', default=False, action="store_true")
-# merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
+merge.add_param('--compression', help='pdf pages compression from 0 to 1', default=0.8)
 
 if __name__ == "__main__":
     try:
