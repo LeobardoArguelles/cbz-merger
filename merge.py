@@ -6,7 +6,7 @@ import cli.log
 import logging
 import re
 from math import floor
-from multiprocessing import Pool, Process
+from multiprocessing import Pool, Process, cpu_count
 from time import sleep
 from os import walk
 from os import path
@@ -32,7 +32,7 @@ ZIP_DIR = 'zipper'
 main_dir = ''
 
 # CPUs availables for parallel work
-CPU_COUNT = os.cpu_count()
+CPU_COUNT = cpu_count()
 
 @cli.log.LoggingApp
 def merge(app):
@@ -90,7 +90,7 @@ def extractCbz(zips):
     # <EXTRACT_DIR>
     for file in natsorted(zips):
 
-        if file == EXTRACT_DIR or file == ZIP_DIR:
+        if file == EXTRACT_DIR or file == ZIP_DIR or not os.path.isfile(file):
             continue
 
         name, ext = path.splitext(file)
@@ -99,6 +99,7 @@ def extractCbz(zips):
         makeDirectory(extract_path)
 
         LOGGER.info('Extracting: ' + name + '...')
+
         with ZipFile(file, 'r') as zipObj:
             zipObj.extractall(extract_path)
 
@@ -223,7 +224,7 @@ def mergeImages():
             with ZipFile(ARCHIVE, 'w') as zf:
                 for img in natsorted(os.listdir('.')):
                     LOGGER.debug('Adding: ' + img)
-                    zf.write(path.join(root, img))
+                    zf.write(img)
 
 
 
@@ -371,7 +372,7 @@ def groupZips(zips, n):
     """
     zips = natsorted(zips)
     length = len(zips)
-    groupSize = floor(length / n)
+    groupSize = floor(length / n) | 1
     groups = []
 
     for i in range(0, length, groupSize):
