@@ -335,11 +335,14 @@ def mapExtractedImages(dirs, isPdf, main_dir):
         counter = 0
         currentDir = path.join(main_dir, EXTRACT_DIR, dir)
         # Move images to ZIP_DIR, renaming them to be continuous
-        for img in natsorted(os.listdir(currentDir)):
+        imglist = natsorted(os.listdir(currentDir))
+        imglistlength = len(imglist)
+        imglistlengthmax = len(str(imglistlength)) + 1
+        for img in imglist:
 
             origin = path.join(currentDir, img)
             destination = path.join(main_dir, ZIP_DIR, dir)
-            n = str(counter)
+            n = str(counter).zfill(imglistlengthmax)
 
 
             f(origin, destination, n)
